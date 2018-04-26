@@ -3,13 +3,15 @@
 
 import javalang
 from os import makedirs, listdir, path
-from os.path import isfile, join
+from os.path import isfile, join, basename
 
-ENTITIES_FOLDER = 'entities'
-REPOSITORIES_FOLDER = 'repositories'
-SERVICES_FOLDER = 'services'
+ENTITIES_FOLDER = 'entities' # Do not include / at end
+REPOSITORIES_FOLDER = 'repositories' # Do not include / at end
+SERVICES_FOLDER = 'services' # Do not include / at end
 BASE_PACKAGE = 'com.luanvv.spring.jpa'
 
+REPOSITORY_POSTFIX = 'Dao'
+SERVICE_POSTFIX = 'Service'
 EXCLUDE_FIELD = []
 
 
@@ -69,21 +71,27 @@ def get_find_by_methods(tree, class_name = None, fields = None, method_type = 0)
         field_type = field.type.name
         if is_ignore_field(field):
             continue
+        if method_type == 2:
+            repository_methods.append('\t@Override')
         method_name = None
         if is_id_annotation(field):
             method_name = 'findOne'
-            repository_methods.append('\tOptional<{0}> {1}({2} {3}){4}'.format(class_name,
+            repository_methods.append('\t{0}Optional<{1}> {2}({3} {4}){5}'.format(
+                    'public ' if method_type == 2 else '',
+                    class_name,
                     method_name,
                     field.type.name, 
                     'id', 
                     end_method_point))
         else:
             method_name = 'findBy{0}'.format(upper_first(get_field_name(field)))
-            repository_methods.append('\tList<{0}> {1}({2} {3}){4}'.format(class_name,
-                                  method_name, 
-                                  field_type,
-                                  lower_first(field_name),
-                                  end_method_point))
+            repository_methods.append('\t{0}List<{1}> {2}({3} {4}){5}'.format(
+                                'public ' if method_type == 2 else '',
+                                class_name,
+                                method_name, 
+                                field_type,
+                                lower_first(field_name),
+                                end_method_point))
         if method_type == 2:
             repository_methods.append('\t\treturn dao.{0}({1});'.format(method_name, lower_first(field_name)))
             repository_methods.append('\t}')
@@ -142,18 +150,18 @@ def get_repository(
     if id is None:
         id = get_id(fields)
     line_packages = ['package {0}.{1};'.format(BASE_PACKAGE,
-                     REPOSITORIES_FOLDER),
+                     basename(REPOSITORIES_FOLDER)),
                     '']
 
     line_imports = []
-    line_imports.append('import org.springframework.data.repository.JpaRepository;'
+    line_imports.append('import org.springframework.data.jpa.repository.JpaRepository;'
                         )
     line_imports.append('import org.springframework.stereotype.Repository;'
                         )
     line_imports.append('')
     lines = []
     lines.append('@Repository')
-    lines.append('public interface {0}Dao  extends JpaRepository<{1}, {2}> {{'.format(class_name, class_name, id['type']))
+    lines.append('public interface {0}{1}  extends JpaRepository<{2}, {3}> {{'.format(class_name, REPOSITORY_POSTFIX, class_name, id['type']))
     lines.append('')
     line_methods = get_find_by_methods(tree, class_name = class_name, fields = fields)
 
@@ -176,7 +184,7 @@ def get_service(
     if id is None:
         id = get_id(fields)
     line_packages = ['package {0}.{1};'.format(BASE_PACKAGE,
-                     SERVICES_FOLDER),
+                     basename(SERVICES_FOLDER)),
                     '']
 
     line_imports = []
@@ -190,7 +198,7 @@ def get_service(
     
     lines.append('@Transactional(readOnly = true)')
     lines.append('@Service')
-    lines.append('public interface {0}Service {{'.format(class_name))
+    lines.append('public interface {0}{1} {{'.format(class_name, SERVICE_POSTFIX))
     lines.append('')
 
     line_methods = get_find_by_methods(tree, class_name = class_name, fields = fields, method_type = 1)
@@ -214,7 +222,7 @@ def get_service_impl(
     if id is None:
         id = get_id(fields)
     line_packages = ['package {0}.{1};'.format(BASE_PACKAGE,
-                     SERVICES_FOLDER),
+                     basename(SERVICES_FOLDER)),
                     '']
 
     line_imports = []
@@ -225,10 +233,10 @@ def get_service_impl(
     lines = []
     
     lines.append('@Component')
-    lines.append('public class {0}ServiceImpl implements {0}Service {{'.format(class_name))
+    lines.append('public class {0}{1}Impl implements {0}Service {{'.format(class_name, SERVICE_POSTFIX))
     lines.append('')
     lines.append('\t@Autowired')
-    lines.append('\tprivate {0}Dao dao;'.format(class_name))
+    lines.append('\tprivate {0}{1} dao;'.format(class_name, REPOSITORY_POSTFIX))
     lines.append('')
 
     line_methods = get_find_by_methods(tree, class_name = class_name, fields = fields, method_type = 2)
