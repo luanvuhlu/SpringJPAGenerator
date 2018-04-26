@@ -56,6 +56,12 @@ def get_trees():
         trees.append(get_tree(mypath + '/' + f))
     return trees
 
+def get_import_for_method():
+    return [
+        'import java.util.List;',
+        'import java.util.Optional;',
+        '',
+    ]
 
 def get_find_by_methods(tree, class_name = None, fields = None, method_type = 0): 
     # method_type: 0 for repository, 1 for service interface and 2 for service class implement
@@ -153,7 +159,7 @@ def get_repository(
                      basename(REPOSITORIES_FOLDER)),
                     '']
 
-    line_imports = []
+    line_imports = get_import_for_method()
     line_imports.append('import org.springframework.data.jpa.repository.JpaRepository;'
                         )
     line_imports.append('import org.springframework.stereotype.Repository;'
@@ -187,7 +193,7 @@ def get_service(
                      basename(SERVICES_FOLDER)),
                     '']
 
-    line_imports = []
+    line_imports = get_import_for_method()
     line_imports.append('import org.springframework.stereotype.Service;'
                         )
     line_imports.append('import org.springframework.transaction.annotation.Transactional;'
@@ -225,7 +231,7 @@ def get_service_impl(
                      basename(SERVICES_FOLDER)),
                     '']
 
-    line_imports = []
+    line_imports = get_import_for_method()
     line_imports.append('import org.springframework.stereotype.Component;')
     line_imports.append('import org.springframework.beans.factory.annotation.Autowired;')
     line_imports.append('')
